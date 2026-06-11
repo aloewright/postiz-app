@@ -37,7 +37,17 @@ interface Env {
   // optional: external stores (skip in-container postgres/redis when set)
   DATABASE_URL?: string;
   REDIS_URL?: string;
+  // optional: Google OAuth client (GCP "Web application" credentials).
+  // Enables "Sign in with Google" (apps/backend .../google.provider.ts) and
+  // the YouTube channel integration — both share this client.
+  YOUTUBE_CLIENT_ID?: string;
+  YOUTUBE_CLIENT_SECRET?: string;
 }
+
+// Optional secrets forwarded into the container verbatim when set
+// (wrangler secret put <NAME>). Add social OAuth keys here as needed —
+// they must also be listed in container/entrypoint.sh ENV_KEYS.
+const PASSTHROUGH_SECRETS = ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET'] as const;
 
 const containerEnv = (env: Env): Record<string, string> => {
   const publicUrl = env.PUBLIC_URL.replace(/\/$/, '');
@@ -67,6 +77,9 @@ const containerEnv = (env: Env): Record<string, string> => {
   };
   if (env.DATABASE_URL) vars.DATABASE_URL = env.DATABASE_URL;
   if (env.REDIS_URL) vars.REDIS_URL = env.REDIS_URL;
+  for (const key of PASSTHROUGH_SECRETS) {
+    if (env[key]) vars[key] = env[key];
+  }
   return vars;
 };
 

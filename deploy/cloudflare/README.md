@@ -81,6 +81,10 @@ npx wrangler secret put JWT_SECRET       # any long random string
 npx wrangler secret put CF_AIG_TOKEN     # AI Gateway authentication token
 npx wrangler secret put INTERNAL_SECRET  # any long random string (container<->worker auth)
 
+# Google login + YouTube channel (optional, see "Google login" below)
+npx wrangler secret put YOUTUBE_CLIENT_ID
+npx wrangler secret put YOUTUBE_CLIENT_SECRET
+
 ./deploy.sh
 ```
 
@@ -99,6 +103,36 @@ changing it only requires a redeploy, not an image rebuild.
 First request after a cold start takes ~1–2 min (restore + boot); check
 `npx wrangler tail` and the container logs in the dash if it seems stuck.
 
+After changing secrets or deploying a new image, restart the running
+container so it picks them up (env is injected at container start):
+
+```bash
+curl -X POST -H "authorization: Bearer $INTERNAL_SECRET" \
+  https://postiz.lazee.workers.dev/__admin/restart
+```
+
+## Google login
+
+The "Sign in with Google" button on /auth/login uses the `YOUTUBE_CLIENT_ID`
+/ `YOUTUBE_CLIENT_SECRET` OAuth client (the same GCP client powers the
+YouTube channel integration). In the GCP console, the client must be a
+**Web application** with this exact authorized redirect URI, where
+`<PUBLIC_URL>` is `vars.PUBLIC_URL` from `wrangler.jsonc` (the backend
+builds the redirect from `FRONTEND_URL`, which the Worker derives from
+`PUBLIC_URL`; the login flow returns to the YouTube integration path with
+`state=login`):
+
+```
+<PUBLIC_URL>/integrations/social/youtube
+```
+
+e.g. `https://postiz.lazee.workers.dev/integrations/social/youtube` for the
+currently configured `PUBLIC_URL`.
+
+The bare worker URL alone will fail with `redirect_uri_mismatch`. Only the
+`userinfo.email` / `userinfo.profile` scopes are used for login; while the
+consent screen is in Testing mode, add your Google account as a test user.
+
 ## Env contract (container)
 
 Set by the Worker (`containerEnv()` in `worker/src/index.ts`):
@@ -106,6 +140,8 @@ Set by the Worker (`containerEnv()` in `worker/src/index.ts`):
 `JWT_SECRET`, `CF_ACCOUNT_ID`, `CF_GATEWAY_ID`, `CF_AIG_TOKEN`,
 `AI_TEXT_MODEL`, `AI_IMAGE_BASE_URL`, `OPENAI_API_KEY` (= gateway token, for
 feature gates), `BACKUP_URL`, `INTERNAL_SECRET`, optional `DATABASE_URL` /
-`REDIS_URL` overrides. Everything else defaults in
-`container/entrypoint.sh`. Social-network OAuth keys can be added to
-`containerEnv()` as Worker secrets when needed.
+`REDIS_URL` overrides, optional `YOUTUBE_CLIENT_ID` /
+`YOUTUBE_CLIENT_SECRET` (Google login + YouTube channel). Everything else
+defaults in `container/entrypoint.sh`. Further social-network OAuth keys go
+in `PASSTHROUGH_SECRETS` (`worker/src/index.ts`) plus `ENV_KEYS`
+(`container/entrypoint.sh`).
