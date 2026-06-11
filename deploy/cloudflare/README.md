@@ -116,12 +116,18 @@ curl -X POST -H "authorization: Bearer $INTERNAL_SECRET" \
 The "Sign in with Google" button on /auth/login uses the `YOUTUBE_CLIENT_ID`
 / `YOUTUBE_CLIENT_SECRET` OAuth client (the same GCP client powers the
 YouTube channel integration). In the GCP console, the client must be a
-**Web application** with this exact authorized redirect URI (the login flow
-redirects back to the YouTube integration path with `state=login`):
+**Web application** with this exact authorized redirect URI, where
+`<PUBLIC_URL>` is `vars.PUBLIC_URL` from `wrangler.jsonc` (the backend
+builds the redirect from `FRONTEND_URL`, which the Worker derives from
+`PUBLIC_URL`; the login flow returns to the YouTube integration path with
+`state=login`):
 
 ```
-https://postiz.lazee.workers.dev/integrations/social/youtube
+<PUBLIC_URL>/integrations/social/youtube
 ```
+
+e.g. `https://postiz.lazee.workers.dev/integrations/social/youtube` for the
+currently configured `PUBLIC_URL`.
 
 The bare worker URL alone will fail with `redirect_uri_mismatch`. Only the
 `userinfo.email` / `userinfo.profile` scopes are used for login; while the
