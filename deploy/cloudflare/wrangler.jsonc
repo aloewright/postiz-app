@@ -59,7 +59,7 @@
   "vars": {
     // Public URL of this worker; set to the real workers.dev URL (or custom
     // domain) — baked into the container env at start.
-    "PUBLIC_URL": "https://postiz.lazee.workers.dev",
+    "PUBLIC_URL": "https://social.fly.pm",
     "CF_ACCOUNT_ID": "85d376fc54617bcb57185547f08e528b",
     "CF_GATEWAY_ID": "x",
     "AI_TEXT_MODEL": "dynamic/text_gen",

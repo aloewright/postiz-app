@@ -42,12 +42,45 @@ interface Env {
   // the YouTube channel integration — both share this client.
   YOUTUBE_CLIENT_ID?: string;
   YOUTUBE_CLIENT_SECRET?: string;
+  // optional: additional social-provider OAuth apps / tokens. Forwarded into
+  // the container only when set (see PASSTHROUGH_SECRETS + entrypoint ENV_KEYS).
+  REDDIT_CLIENT_ID?: string;
+  REDDIT_CLIENT_SECRET?: string;
+  TWITCH_CLIENT_ID?: string;
+  TWITCH_CLIENT_SECRET?: string;
+  DISCORD_CLIENT_ID?: string;
+  DISCORD_CLIENT_SECRET?: string;
+  DISCORD_BOT_TOKEN_ID?: string;
+  LINKEDIN_CLIENT_ID?: string;
+  LINKEDIN_CLIENT_SECRET?: string;
+  TIKTOK_CLIENT_ID?: string;
+  TIKTOK_CLIENT_SECRET?: string;
+  TELEGRAM_TOKEN?: string;
+  FACEBOOK_APP_ID?: string;
+  FACEBOOK_APP_SECRET?: string;
 }
 
 // Optional secrets forwarded into the container verbatim when set
 // (wrangler secret put <NAME>). Add social OAuth keys here as needed —
 // they must also be listed in container/entrypoint.sh ENV_KEYS.
-const PASSTHROUGH_SECRETS = ['YOUTUBE_CLIENT_ID', 'YOUTUBE_CLIENT_SECRET'] as const;
+const PASSTHROUGH_SECRETS = [
+  'YOUTUBE_CLIENT_ID',
+  'YOUTUBE_CLIENT_SECRET',
+  'REDDIT_CLIENT_ID',
+  'REDDIT_CLIENT_SECRET',
+  'TWITCH_CLIENT_ID',
+  'TWITCH_CLIENT_SECRET',
+  'DISCORD_CLIENT_ID',
+  'DISCORD_CLIENT_SECRET',
+  'DISCORD_BOT_TOKEN_ID',
+  'LINKEDIN_CLIENT_ID',
+  'LINKEDIN_CLIENT_SECRET',
+  'TIKTOK_CLIENT_ID',
+  'TIKTOK_CLIENT_SECRET',
+  'TELEGRAM_TOKEN',
+  'FACEBOOK_APP_ID',
+  'FACEBOOK_APP_SECRET',
+] as const;
 
 const containerEnv = (env: Env): Record<string, string> => {
   const publicUrl = env.PUBLIC_URL.replace(/\/$/, '');
@@ -96,7 +129,15 @@ export class PostizContainer extends Container<Env> {
   // RPC for /__admin/restart: tear the instance down so the next request
   // boots a fresh container on the latest deployed image (state restores
   // from R2). Long-lived instances otherwise keep serving the old image.
-  async restartContainer(): Promise<void> {
+  async restartContainer(freshEnv?: Record<string, string>): Promise<void> {
+    // Durable Objects capture `env` at construction and never hot-update it,
+    // and the */5 keep-alive keeps this DO warm — so after a deploy or a
+    // `wrangler secret put`, the `this.envVars` set in the constructor can be
+    // stale. The top-level fetch handler always runs the latest deployment and
+    // has the live env, so it passes a freshly computed containerEnv() here;
+    // overwriting the cached value makes the next container boot use the
+    // current PUBLIC_URL/secrets without waiting for the DO isolate to recycle.
+    if (freshEnv) this.envVars = freshEnv;
     await this.destroy();
   }
 }
@@ -209,7 +250,9 @@ export default {
       if (request.method !== 'POST') {
         return new Response('method not allowed', { status: 405 });
       }
-      await getContainer(env.POSTIZ_CONTAINER).restartContainer();
+      await getContainer(env.POSTIZ_CONTAINER).restartContainer(
+        containerEnv(env)
+      );
       return new Response('container stopped; next request boots the latest image\n');
     }
     if (url.pathname === '/__ai/v1/images/generations') {
