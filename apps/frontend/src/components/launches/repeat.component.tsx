@@ -87,7 +87,7 @@ export const RepeatComponent: FC<{
         <div className="cursor-pointer">
           <RepeatIcon />
         </div>
-        <div className="cursor-pointer">
+        <div className="cursor-pointer whitespace-nowrap">
           {repeat
             ? `${t('repeat_post_every_label', 'Repeat Post Every')} ${everyLabel}`
             : t('repeat_post_every', 'Repeat Post Every...')}

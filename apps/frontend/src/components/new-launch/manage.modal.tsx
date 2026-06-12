@@ -547,8 +547,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
             </div>
           </div>
         </div>
-        <div className="select-none h-[84px] py-[20px] border-t border-newBorder flex items-center">
-          <div className="flex-1 flex ps-[20px] gap-[8px]">
+        <div className="select-none min-h-[84px] py-[20px] border-t border-newBorder flex flex-wrap items-center gap-y-[12px]">
+          <div className="flex-1 flex flex-wrap ps-[20px] gap-[8px] min-w-0">
             {!dummy && (
               <TagsComponent
                 name="tags"

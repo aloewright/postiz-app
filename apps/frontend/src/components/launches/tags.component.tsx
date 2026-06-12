@@ -172,7 +172,7 @@ export const TagsComponentInner: FC<{
         <div className="cursor-pointer">
           <TagIcon />
         </div>
-        <div className="cursor-pointer flex gap-[4px]">
+        <div className="cursor-pointer flex gap-[4px] whitespace-nowrap">
           {tagValue.length === 0 ? (
             t('add_new_tag', 'Add New Tag')
           ) : (

@@ -357,6 +357,10 @@ export const WeekView = () => {
       days.push({
         name: day.format('dddd'),
         day: day.format('L'),
+        // Compact display label — the week range up top already shows the year,
+        // and the full MM/DD/YYYY string overflows narrow day columns. `day`
+        // (full localized date) is kept above for the today() comparison.
+        label: day.format(isUSCitizen() ? 'MMM D' : 'D MMM'),
         date: day,
       });
     }
@@ -371,22 +375,22 @@ export const WeekView = () => {
           {localizedDays.map((day, index) => (
             <div
               key={day.name}
-              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20]"
+              className="p-2 text-center bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 z-[20] min-w-0 overflow-hidden"
             >
-              <div className="text-[14px] font-[500] text-newTableText">
+              <div className="max-w-full truncate text-[14px] font-[500] text-newTableText">
                 {day.name}
               </div>
               <div
                 className={clsx(
-                  'text-[14px] font-[600] flex items-center justify-center gap-[6px]',
+                  'max-w-full min-w-0 text-[14px] font-[600] flex items-center justify-center gap-[6px]',
                   day.day === newDayjs().format('L') &&
                     'text-newTableTextFocused'
                 )}
               >
                 {day.day === newDayjs().format('L') && (
-                  <div className="w-[6px] h-[6px] bg-newTableTextFocused rounded-full" />
+                  <div className="w-[6px] h-[6px] shrink-0 bg-newTableTextFocused rounded-full" />
                 )}
-                {day.day}
+                <span className="truncate">{day.label}</span>
               </div>
             </div>
           ))}
@@ -469,9 +473,9 @@ export const MonthView = () => {
           {localizedDays.map((day) => (
             <div
               key={day}
-              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0"
+              className="z-[20] p-2 bg-newTableHeader flex justify-center items-center flex-col h-[62px] rounded-[8px] sticky top-0 min-w-0 overflow-hidden"
             >
-              <div>{day}</div>
+              <div className="max-w-full truncate">{day}</div>
             </div>
           ))}
           {calendarDays.map((date, index) => (
