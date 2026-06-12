@@ -36,6 +36,7 @@ import WordpressProvider from '@gitroom/frontend/components/new-launch/providers
 import ListmonkProvider from '@gitroom/frontend/components/new-launch/providers/listmonk/listmonk.provider';
 import GmbProvider from '@gitroom/frontend/components/new-launch/providers/gmb/gmb.provider';
 import MoltbookProvider from '@gitroom/frontend/components/new-launch/providers/moltbook/moltbook.provider';
+import EmdashProvider from '@gitroom/frontend/components/new-launch/providers/emdash/emdash.provider';
 import SkoolProvider from '@gitroom/frontend/components/new-launch/providers/skool/skool.provider';
 import WhopProvider from '@gitroom/frontend/components/new-launch/providers/whop/whop.provider';
 import MeweProvider from '@gitroom/frontend/components/new-launch/providers/mewe/mewe.provider';
@@ -160,6 +161,10 @@ export const Providers = [
   {
     identifier: 'moltbook',
     component: MoltbookProvider,
+  },
+  {
+    identifier: 'emdash',
+    component: EmdashProvider,
   },
   {
     identifier: 'skool',
