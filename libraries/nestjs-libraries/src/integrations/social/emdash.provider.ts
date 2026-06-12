@@ -21,7 +21,7 @@ export class EmdashProvider extends SocialAbstract implements SocialProvider {
   identifier = 'emdash';
   name = 'EmDash';
   isBetweenSteps = false;
-  editor = 'html' as const;
+  editor = 'normal' as const;
   scopes = [] as string[];
   override maxConcurrentJob = 5;
   dto = EmdashDto;
@@ -87,6 +87,37 @@ export class EmdashProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  /**
+   * EmDash content fields store Portable Text blocks, not HTML/markdown. Convert
+   * the post body into a minimal block array — one "normal" paragraph block per
+   * line. HTML is stripped defensively so an HTML body still degrades cleanly.
+   */
+  private toPortableText(message?: string) {
+    const text = (message || '')
+      .replace(/<br\s*\/?>(?:\s*)/gi, '\n')
+      .replace(/<\/(?:p|div|h[1-6]|li|ul|ol|blockquote)>/gi, '\n\n')
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&#39;/gi, "'")
+      .replace(/&quot;/gi, '"');
+    const paragraphs = text
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    if (paragraphs.length === 0) {
+      paragraphs.push('');
+    }
+    return paragraphs.map((p, i) => ({
+      _type: 'block',
+      _key: `b${i}`,
+      style: 'normal',
+      children: [{ _type: 'span', _key: `s${i}`, text: p }],
+    }));
+  }
+
   async authenticate(params: {
     code: string;
     codeVerifier: string;
@@ -94,14 +125,21 @@ export class EmdashProvider extends SocialAbstract implements SocialProvider {
   }) {
     try {
       const { domain, apiKey } = this.decode(params.code);
-      // Validate the token + reachability with a read the token is allowed to
-      // do (listing the site's collections). 401/invalid -> this.fetch throws
-      // or returns success:false.
-      const res = await this.fetch(`${domain}/_emdash/api/schema/collections`, {
+      // Validate the token and pull the connected identity. An invalid token
+      // makes this.fetch throw (caught below).
+      const res = await this.fetch(`${domain}/_emdash/api/auth/me`, {
         headers: { Authorization: `Bearer ${apiKey}` },
       });
-      const json = (await res.json()) as { success?: boolean };
-      if (json?.success === false) {
+      const json = (await res.json()) as {
+        data?: {
+          id?: string;
+          name?: string;
+          email?: string;
+          avatarUrl?: string;
+        };
+      };
+      const user = json?.data;
+      if (!user || (!user.id && !user.email)) {
         return 'Invalid credentials';
       }
       const host = domain.replace(/^https?:\/\//, '');
@@ -109,10 +147,10 @@ export class EmdashProvider extends SocialAbstract implements SocialProvider {
         refreshToken: '',
         expiresIn: dayjs().add(100, 'years').unix() - dayjs().unix(),
         accessToken: params.code,
-        id: domain,
-        name: host,
-        picture: '',
-        username: host,
+        id: `${domain}_${user.id || 'emdash'}`,
+        name: user.name || user.email || host,
+        picture: user.avatarUrl || '',
+        username: user.email || host,
       };
     } catch (err) {
       return 'Invalid credentials';
@@ -152,7 +190,7 @@ export class EmdashProvider extends SocialAbstract implements SocialProvider {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          data: { title, content: first?.message || '' },
+          data: { title, content: this.toPortableText(first?.message) },
           slug,
         }),
       })
